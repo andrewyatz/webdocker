@@ -22,10 +22,18 @@ RUN brew tap homebrew/science && \
 # install ensembl web dependencies
 RUN brew update && brew info ensembl/cask/web
 RUN brew install python
-RUN brew install ensembl/cask/web
+RUN brew install ensembl/cask/web-base
+RUN brew install ensembl/cask/web-perllibs
+RUN brew install ensembl/cask/web-gui
+# Need to do this to ignore a pcre error
+RUN brew install ensembl/ensembl/blast; exit 0
+RUN brew install ensembl/cask/web-bifo
 
 # Setup bioperl (came in via the web cask)
 ENV PERL5LIB $PERL5LIB:$HOME/.linuxbrew/opt/bioperl-169
+# Setup Perl library dependencies
+ENV HTSLIB_DIR $HOME/.linuxbrew/opt/htslib
+ENV KENT_SRC $HOME/.linuxbrew/opt/kent
 
 # clone git repositories
 RUN mkdir -p src
