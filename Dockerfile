@@ -2,7 +2,10 @@
 FROM linuxbrew/linuxbrew
 
 # update aptitude and install some required packages
-#RUN apt-get update && apt-get -y install 
+RUN sudo apt-get update && sudo apt-get -y install python
+
+# swtich to using linuxbrew user not root
+USER linuxbrew
 
 # Turn off analytics
 RUN brew analytics off
@@ -19,42 +22,76 @@ RUN brew tap homebrew/science && \
   brew tap ensembl/cask && \
   brew tap homebrew/nginx
 
+# Setup bioperl (will come in via the web cask)
+ENV PERL5LIB /home/linuxbrew/.linuxbrew/opt/bioperl-169/libexec
+# Setup Perl library dependencies
+ENV HTSLIB_DIR=/home/linuxbrew/.linuxbrew/opt/htslib KENT_SRC=/home/linuxbrew/.linuxbrew/opt/kent MACHTYPE=x86_64 SHARE_PATH=/home/linuxbrew/paths
+
 # install ensembl web dependencies
-RUN brew update && brew info ensembl/cask/web
+RUN brew update && brew info ensembl/cask/web-base
+# Avoid berkeley-db@4 and berkeley-db issues
 RUN brew install python
+# Fetch ensembl tools
+RUN brew install ensembl/ensembl/ensembl-git-tools
 RUN brew install ensembl/cask/web-base
 RUN brew install ensembl/cask/web-perllibs
 RUN brew install ensembl/cask/web-gui
+
 # Need to do this to ignore a pcre error
 RUN brew install ensembl/ensembl/blast; exit 0
+
+# Go for remaining dependencies from brew
 RUN brew install ensembl/cask/web-bifo
 
-# Setup bioperl (came in via the web cask)
-ENV PERL5LIB $PERL5LIB:$HOME/.linuxbrew/opt/bioperl-169
-# Setup Perl library dependencies
-ENV HTSLIB_DIR $HOME/.linuxbrew/opt/htslib
-ENV KENT_SRC $HOME/.linuxbrew/opt/kent
+# Get hubCheck (not in brew)
+RUN mkdir -p $HOME/utils
+WORKDIR /home/linuxbrew/utils
+RUN curl -s http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/hubCheck > hubCheck
+RUN chmod ugo+x hubCheck
+WORKDIR /home/linuxbrew
+
+# Create fonts directory
+RUN mkdir -p $HOME/fonts && ln -s $HOME/fonts $HOME/.fonts
 
 # clone git repositories
 RUN mkdir -p src
-WORKDIR $HOME/src
 RUN git clone https://github.com/Ensembl/ensembl.git
 RUN git clone https://github.com/Ensembl/ensembl-webcode.git
 
 # Install Perl dependencies
-ADD https://raw.githubusercontent.com/Ensembl/cpanfiles/master/web/cpanfile cpanfile
 RUN cpanm --installdeps --with-recommends --notest --cpanfile ensembl/cpanfile .
-RUN cpanm --installdeps --with-recommends --notest --cpanfile cpanfile .
+RUN curl -s https://raw.githubusercontent.com/Ensembl/cpanfiles/master/web/cpanfile > cpanfile
 
-# Switch back to home
-WORKDIR $HOME
-# switch back to vep user
-# USER vep
+# HTML::Formatter fails to install sometimes. So we force it. Really this should not happen
+RUN cpanm --notest HTML::Formatter
+RUN cpanm --installdeps --with-recommends --notest --cpanfile cpanfile .
 
 # update bash profile
 RUN echo >> $HOME/.profile && \
 echo PATH=$HOME/.linuxbrew/bin:\$PATH >> $HOME/.profile && \
+echo PATH=$HOME/paths/bin:\$PATH >> $HOME/.profile && \
+echo MANPATH=$HOME/.linuxbrew/share/man:\$MANPATH >> $HOME/.profile && \
+echo INFOPATH=$HOME/.linuxbrew/share/info:\$INFOPATH >> $HOME/.profile && \
 echo export PATH >> $HOME/.profile && \
+echo export MANPATH >> $HOME/.profile && \
+echo export INFOPATH >> $HOME/.profile && \
 echo export PERL5LIB=${PERL5LIB} >> $HOME/.profile && \
+echo export SHARE_PATH=$HOME/paths >> $HOME/.profile && \
 echo export ENSEMBL_MOONSHINE_ARCHIVE=${ENSEMBL_MOONSHINE_ARCHIVE}} >> $HOME/.profile
 
+# Symlink binaries into share path
+RUN mkdir -p $SHARE_PATH && \
+ln -s $HOME/.linuxbrew/opt/emboss $SHARE_PATH/emboss && \
+ln -s $HOME/.linuxbrew/opt/genewise $SHARE_PATH/genewise && \
+ln -s $HOME/.linuxbrew/opt/jdk/bin/java $SHARE_PATH/java && \
+ln -s $HOME/.linuxbrew/opt/r2r/bin/r2r $SHARE_PATH/r2r && \
+ln -s $HOME/.linuxbrew/opt/htslib/include $SHARE_PATH/htslib && \
+ln -s $HOME/.linuxbrew/opt/kent/bin/gfClient $SHARE_PATH/gfClient  && \
+ln -s $HOME/.linuxbrew/opt/blast/bin $SHARE_PATH/ncbi-blast && \
+ln -s $HOME/.linuxbrew/opt/repeatmasker/bin/RepeatMasker $SHARE_PATH/RepeatMasker && \
+ln -s $HOME/.linuxbrew/opt/htslib/bin/bgzip $SHARE_PATH/bgzip && \
+ln -s $HOME/.linuxbrew/opt/samtools/bin/samtools $SHARE_PATH/samtoools && \
+ln -s $HOME/.linuxbrew/opt/htslib/bin/tabix $SHARE_PATH/tabix
+
+#ln -s $HOME/.linuxbrew/opt/perl/5.24.0_3/lib/perl5/site_perl/5.24.0/ $SHARE_PATH/bioperl && \
+#ln -s $SHARE_PATH/1000G-tools/vcftools/lib/perl5/site_perl/ $SHARE_PATH/vcftools_perl_lib # need 1000G-tools installed before this
