@@ -35,3 +35,11 @@ RUN brew install python
 RUN brew install ensembl/ensembl/ensembl-git-tools
 RUN brew install ensembl/cask/web-base
 
+# ---------
+# MS CORE FONTS
+# ---------
+# from http://askubuntu.com/a/25614
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
+RUN apt-get install -y --no-install-recommends fontconfig ttf-mscorefonts-installer
+ADD localfonts.conf /etc/fonts/local.conf
+RUN fc-cache -f -v
