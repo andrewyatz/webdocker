@@ -1,8 +1,19 @@
 ### docker container for ensembl webcode
 FROM linuxbrew/linuxbrew
 
+USER root
+
 # update aptitude and install some required packages
 RUN sudo apt-get update && sudo apt-get -y install python
+
+# ---------
+# MS CORE FONTS
+# ---------
+# from http://askubuntu.com/a/25614
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
+RUN apt-get install -y --no-install-recommends fontconfig ttf-mscorefonts-installer
+ADD localfonts.conf /etc/fonts/local.conf
+RUN fc-cache -f -v
 
 # swtich to using linuxbrew user not root
 USER linuxbrew
@@ -35,11 +46,3 @@ RUN brew install python
 RUN brew install ensembl/ensembl/ensembl-git-tools
 RUN brew install ensembl/cask/web-base
 
-# ---------
-# MS CORE FONTS
-# ---------
-# from http://askubuntu.com/a/25614
-RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
-RUN apt-get install -y --no-install-recommends fontconfig ttf-mscorefonts-installer
-ADD localfonts.conf /etc/fonts/local.conf
-RUN fc-cache -f -v
