@@ -26,7 +26,7 @@ RUN mkdir -p $HOME/ENSEMBL_MOONSHINE_ARCHIVE
 ENV HOMEBREW_ENSEMBL_MOONSHINE_ARCHIVE $HOME/ENSEMBL_MOONSHINE_ARCHIVE
 
 # Tap brew repositories
-RUN brew tap homebrew/science && \
+RUN brew tap ensembl/external && \
   brew tap ensembl/ensembl && \
   brew tap ensembl/web && \
   brew tap ensembl/moonshine && \
