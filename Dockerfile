@@ -30,8 +30,7 @@ RUN brew tap ensembl/external && \
   brew tap ensembl/ensembl && \
   brew tap ensembl/web && \
   brew tap ensembl/moonshine && \
-  brew tap ensembl/cask && \
-  brew tap homebrew/nginx
+  brew tap ensembl/cask
 
 # Setup bioperl (will come in via the web cask)
 ENV PERL5LIB /home/linuxbrew/.linuxbrew/opt/bioperl-169/libexec
